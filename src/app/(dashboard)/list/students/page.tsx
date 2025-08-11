@@ -5,9 +5,9 @@ import TableSearch from "@/components/TableSearch";
 import { Class, Prisma, Student } from "@/generated/prisma";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
-import { getCurrentRole } from "@/lib/auth";
 
 type StudentList = Student & { class: Class };
 
@@ -19,7 +19,8 @@ const StudentListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
   const query: Prisma.StudentWhereInput = {};
-  const role = await getCurrentRole();
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
     {

@@ -5,8 +5,8 @@ import TableSearch from "@/components/TableSearch";
 import { Parent, Student, Prisma } from "@/generated/prisma";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
-import { getCurrentRole } from "@/lib/auth";
 
 type ParentList = Parent & { students: Student[] };
 
@@ -18,7 +18,8 @@ const ParentListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
   const query: Prisma.ParentWhereInput = {};
-  const role = await getCurrentRole();
+  const { userId, sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
   {

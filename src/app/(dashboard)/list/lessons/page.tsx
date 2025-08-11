@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import Image from "next/image";
 import { Lesson, Prisma, Subject, Class, Teacher } from "@/generated/prisma";
-import { getCurrentRole } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 
 type LessonList = Lesson & { subject: Subject; class: Class; teacher: Teacher };
 
@@ -17,9 +17,8 @@ const LessonListPage = async ({
 }) => {
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
-
-  // Get current role
-  const role = await getCurrentRole();
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
   {

@@ -1,5 +1,3 @@
-import {auth} from "@clerk/nextjs/server";
-
 const getLatestMonday = (): Date => {
   const today = new Date();
   const dayOfWeek = today.getDay();
@@ -41,10 +39,3 @@ export const adjustScheduleToCurrentWeek = (
     };
   });
 };
-
-const getCurrentUserId = async (): Promise<string | null> => {
-  const session = await auth();
-  return session.userId || null;
-};
-
-export const currentUserId = await getCurrentUserId();

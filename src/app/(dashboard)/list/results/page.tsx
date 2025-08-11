@@ -16,8 +16,7 @@ import {
   Class,
   Teacher,
 } from "@/generated/prisma";
-import { getCurrentRole } from "@/lib/auth";
-import { currentUserId } from "@/lib/utils";
+import { auth } from "@clerk/nextjs/server";
 
 type ResultList = {
   id: number;
@@ -38,7 +37,9 @@ const ResultListPage = async ({
 }) => {
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
-  const role = await getCurrentRole();
+  const { userId, sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  const currentUserId = userId;
 
   const columns = [
   {

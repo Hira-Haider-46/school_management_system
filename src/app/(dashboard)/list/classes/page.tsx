@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import Image from "next/image";
 import { Class, Prisma, Teacher } from "@/generated/prisma";
-import { getCurrentRole } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 
 type ClassList = Class & { supervisor?: Teacher | null };
 
@@ -17,42 +17,39 @@ const ClassListPage = async ({
 }) => {
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
-
-  // Get the current role
-  const role = await getCurrentRole();
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
-  {
-    header: "Class Name",
-    accessor: "name",
-  },
-  {
-    header: "Capacity",
-    accessor: "capacity",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Grade",
-    accessor: "grade",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Supervisor",
-    accessor: "supervisor",
-    className: "hidden md:table-cell",
-  },
-  ...(role === "admin"
-    ? [
-        {
-          header: "Actions",
-          accessor: "action",
-        },
-      ]
-    : []),
-];
+    {
+      header: "Class Name",
+      accessor: "name",
+    },
+    {
+      header: "Capacity",
+      accessor: "capacity",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Grade",
+      accessor: "grade",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Supervisor",
+      accessor: "supervisor",
+      className: "hidden md:table-cell",
+    },
+    ...(role === "admin"
+      ? [
+          {
+            header: "Actions",
+            accessor: "action",
+          },
+        ]
+      : []),
+  ];
 
-
-  // Define renderRow function inside component to access role
   const renderRow = (item: ClassList) => (
     <tr
       key={item.id}

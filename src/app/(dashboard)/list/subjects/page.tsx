@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import Image from "next/image";
 import { Prisma, Subject, Teacher } from "@/generated/prisma";
-import { getCurrentRole } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 
 type SubjectList = Subject & { teachers: Teacher[] };
 
@@ -28,11 +28,9 @@ const SubjectListPage = async ({
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
   const query: Prisma.SubjectWhereInput = {};
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-  // Get current user role from Clerk
-  const role = await getCurrentRole();
-
-  // Define renderRow inside component to access role
   const renderRow = (item: SubjectList) => (
     <tr
       key={item.id}

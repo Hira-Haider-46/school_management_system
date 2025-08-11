@@ -7,7 +7,7 @@ import prisma from "@/lib/prisma";
 import Image from "next/image";
 import Link from "next/link";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { getCurrentRole } from "@/lib/auth";
+import { auth } from "@clerk/nextjs/server";
 
 type TeacherList = Teacher & { subjects: Subject[] } & { classes: Class[] };
 
@@ -18,7 +18,8 @@ const TeacherListPage = async ({
 }) => {
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
-  const role = await getCurrentRole();
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
 
   const columns = [
     {
