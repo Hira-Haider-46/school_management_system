@@ -5,7 +5,11 @@ import EventCalendar from "@/components/EventCalendar";
 import FinanceChart from "@/components/FinanceChart";
 import UserCard from "@/components/UserCard";
 
-const AdminPage = () => {
+const AdminPage = ({
+  searchParams,
+}: {
+  searchParams: { [keys: string]: string | undefined };
+}) => {
   return (
     <div className="p-4 gap-4 flex flex-col md:flex-row">
       <div className="w-full lg:w-2/3 flex flex-col gap-8">
