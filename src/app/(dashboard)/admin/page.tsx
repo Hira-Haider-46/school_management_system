@@ -1,7 +1,7 @@
 import Announcements from "@/components/Announcements";
 import AttendanceChartContainer from "@/components/AttendanceChartContainer";
 import CountChartContainer from "@/components/CountChartContainer";
-import EventCalendarContainer from "@/components/EventCalendarContainer";
+import EventCalendarWrapper from "@/components/EventCalendarWrapper";
 import FinanceChart from "@/components/FinanceChart";
 import UserCard from "@/components/UserCard";
 
@@ -28,11 +28,11 @@ const AdminPage = ({
           </div>
         </div>
         <div className="w-full h-[500px]">
-            <FinanceChart />
+          <FinanceChart />
         </div>
       </div>
       <div className="w-full lg:w-1/3 flex flex-col gap-8">
-        <EventCalendarContainer searchParams={searchParams} />
+        <EventCalendarWrapper searchParams={searchParams} />
         <Announcements />
       </div>
     </div>

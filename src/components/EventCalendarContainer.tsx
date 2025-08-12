@@ -1,22 +1,22 @@
-import Image from "next/image";
-import EventCalendar from "./EventCalendar";
-import EventList from './EventList';
+"use client";
 
-const EventCalendarContainer = async ({
-  searchParams,
-}: {
-  searchParams: { [keys: string]: string | undefined };
-}) => {
-  const { date } = searchParams;
+import Image from "next/image";
+import dynamic from "next/dynamic";
+
+const ClientCalendar = dynamic(() => import("./EventCalendar"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-64 bg-gray-100 animate-pulse rounded-md"></div>
+  ),
+});
+
+const EventCalendarContainer = () => {
   return (
     <div className="bg-white p-4 rounded-md">
-      <EventCalendar />
+      <ClientCalendar />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold my-4">Events</h1>
         <Image src="/moreDark.png" alt="" width={20} height={20} />
-      </div>
-      <div className="flex flex-col gap-4">
-        <EventList dateParam={date} />
       </div>
     </div>
   );

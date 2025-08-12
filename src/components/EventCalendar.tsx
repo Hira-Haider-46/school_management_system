@@ -16,11 +16,19 @@ const EventCalendar = () => {
 
   useEffect(() => {
     if (value instanceof Date) {
-      router.push(`?date=${value}`);
+      const formattedDate = value.toISOString().split("T")[0];
+      router.push(`?date=${formattedDate}`);
     }
   }, [value, router]);
 
-  return <Calendar onChange={onChange} value={value} />;
+  return (
+    <Calendar
+      onChange={onChange}
+      value={value}
+      locale="en-US"
+      formatDay={(locale, date) => date.getDate().toString()}
+    />
+  );
 };
 
 export default EventCalendar;
