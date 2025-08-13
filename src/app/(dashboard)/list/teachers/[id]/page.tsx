@@ -1,12 +1,16 @@
 import Announcements from "@/components/Announcements";
 import BigCalendar from "@/components/BigCalendar";
-// import FormModel from "@/components/FormModel";
+import FormModel from "@/components/FormModel";
 import Performance from "@/components/Performance";
-import { role } from "@/lib/data";
+import { auth } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
 
-const SingleTeacherPage = () => {
+const SingleTeacherPage = async () => {
+
+  const { sessionClaims } = await auth();
+  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  
   return (
     <div className="flex-1 p-4 flex flex-col gap-4 xl:flex-row">
       <div className="w-full xl:w-2/3">
@@ -24,7 +28,7 @@ const SingleTeacherPage = () => {
             <div className="w-2/3 flex flex-col justify-between gap-4">
               <div className="flex items-center gap-4">
                 <h1 className="text-xl font-semibold">Leonard Snyder</h1>
-                {/* {role === "admin" && <FormModel
+                {role === "admin" && <FormModel
                   table="teacher"
                   type="update"
                   data={{
@@ -41,7 +45,7 @@ const SingleTeacherPage = () => {
                     sex: "male",
                     img: "https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=1200",
                   }}
-                />} */}
+                />}
               </div>
               <p className="text-sm text-gray-500">
                 Lorem ipsum, dolor sit amet consectetur adipisicing elit.

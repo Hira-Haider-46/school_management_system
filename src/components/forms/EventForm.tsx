@@ -3,8 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, FieldError } from "react-hook-form";
 import InputField from "../InputField";
-import { examSchema } from "@/lib/formValidationSchemas";
-import { createExam, updateExam } from "@/lib/actions";
 import {
   Dispatch,
   SetStateAction,
@@ -12,10 +10,12 @@ import {
   useActionState,
   useTransition,
 } from "react";
-import { toast } from "react-toastify";
+import { eventSchema, EventSchema } from "@/lib/formValidationSchemas";
+import { createEvent, updateEvent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 
-const ExamForm = ({
+const EventForm = ({
   type,
   data,
   setOpen,
@@ -26,20 +26,16 @@ const ExamForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
-  const form = useForm({
-    resolver: zodResolver(examSchema),
-  });
-
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = form;
-
-  // AFTER REACT 19 IT'LL BE USEACTIONSTATE
+  } = useForm({
+    resolver: zodResolver(eventSchema),
+  });
 
   const [state, formAction] = useActionState(
-    type === "create" ? createExam : updateExam,
+    type === "create" ? createEvent : updateEvent,
     {
       success: false,
       error: false,
@@ -51,7 +47,7 @@ const ExamForm = ({
   const onSubmit = handleSubmit((data) => {
     console.log(data);
     startTransition(() => {
-      formAction(data);
+      formAction(data as EventSchema);
     });
   });
 
@@ -59,73 +55,79 @@ const ExamForm = ({
 
   useEffect(() => {
     if (state.success) {
-      toast(`Exam has been ${type === "create" ? "created" : "updated"}!`);
+      toast(`Event has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
     }
   }, [state, router, type, setOpen]);
 
-  const { lessons } = relatedData || { lessons: [] };
+  const { classes } = relatedData || {};
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="text-xl font-semibold">
-        {type === "create" ? "Create a new exam" : "Update the exam"}
+        {type === "create" ? "Create a new event" : "Update the event"}
       </h1>
-
       <div className="flex justify-between flex-wrap gap-4">
         <InputField
-          label="Exam title"
+          label="Event Title"
           name="title"
           defaultValue={data?.title}
           register={register}
           error={errors?.title as FieldError}
         />
-        <InputField
-          label="Start Date"
-          name="startTime"
-          defaultValue={data?.startTime}
-          register={register}
-          error={errors?.startTime as FieldError}
-          type="datetime-local"
-        />
-        <InputField
-          label="End Date"
-          name="endTime"
-          defaultValue={data?.endTime}
-          register={register}
-          error={errors?.endTime as FieldError}
-          type="datetime-local"
-        />
-        {data && (
-          <InputField
-            label="Id"
-            name="id"
-            defaultValue={data?.id?.toString()}
-            register={register}
-            error={errors?.id as FieldError}
-            type="hidden"
-          />
-        )}
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Lesson</label>
-          <select
+        <div className="flex flex-col gap-2 w-full">
+          <label className="text-xs text-gray-500">Description</label>
+          <textarea
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("lessonId")}
-            defaultValue={data?.lessonId}
-          >
-            {lessons.map((lesson: { id: number; name: string }) => (
-              <option value={lesson.id} key={lesson.id}>
-                {lesson.name}
-              </option>
-            ))}
-          </select>
-          {errors.lessonId?.message && (
+            {...register("description")}
+            defaultValue={data?.description}
+            rows={3}
+          />
+          {errors.description && (
             <p className="text-xs text-red-400">
-              {errors.lessonId.message.toString()}
+              {(errors.description as FieldError).message?.toString()}
             </p>
           )}
         </div>
+        <InputField
+          label="Start Time"
+          name="startTime"
+          type="datetime-local"
+          defaultValue={data?.startTime}
+          register={register}
+          error={errors?.startTime as FieldError}
+        />
+        <InputField
+          label="End Time"
+          name="endTime"
+          type="datetime-local"
+          defaultValue={data?.endTime}
+          register={register}
+          error={errors?.endTime as FieldError}
+        />
+        {classes && (
+          <div className="flex flex-col gap-2 w-full md:w-1/4">
+            <label className="text-xs text-gray-500">Class (Optional)</label>
+            <select
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("classId")}
+              defaultValue={data?.classId}
+            >
+              <option value="">Select a class</option>
+              {classes.map((classItem: { id: number; name: string }) => (
+                <option value={classItem.id} key={classItem.id}>
+                  {classItem.name}
+                </option>
+              ))}
+            </select>
+            {errors.classId && (
+              <p className="text-xs text-red-400">
+                {(errors.classId as FieldError).message?.toString()}
+              </p>
+            )}
+          </div>
+        )}
       </div>
       {state.error && (
         <span className="text-red-500">Something went wrong!</span>
@@ -140,4 +142,4 @@ const ExamForm = ({
   );
 };
 
-export default ExamForm;
+export default EventForm;

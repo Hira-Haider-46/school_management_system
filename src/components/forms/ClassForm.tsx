@@ -1,22 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, FieldError } from "react-hook-form";
 import InputField from "../InputField";
+import { classSchema } from "@/lib/formValidationSchemas";
+import { createClass, updateClass } from "@/lib/actions";
 import {
-  classSchema,
-  ClassSchema,
-  subjectSchema,
-  SubjectSchema,
-} from "@/lib/formValidationSchemas";
-import {
-  createClass,
-  createSubject,
-  updateClass,
-  updateSubject,
-} from "@/lib/actions";
-import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useActionState,
+  useTransition,
+} from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -31,15 +26,17 @@ const ClassForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const form = useForm({
+    resolver: zodResolver(classSchema),
+  });
+
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ClassSchema>({
-    resolver: zodResolver(classSchema),
-  });
+  } = form;
 
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     type === "create" ? createClass : updateClass,
     {
       success: false,
@@ -47,22 +44,33 @@ const ClassForm = ({
     }
   );
 
-  const onSubmit = handleSubmit((data) => {
-    console.log(data);
-    formAction(data);
+  const [isPending, startTransition] = useTransition();
+
+  const onSubmit = handleSubmit((formData) => {
+    console.log(formData);
+    const classData = {
+      id: formData.id,
+      name: formData.name,
+      capacity: Number(formData.capacity),
+      gradeId: Number(formData.gradeId),
+      supervisorId: formData.supervisorId || undefined,
+    };
+    startTransition(() => {
+      formAction(classData);
+    });
   });
 
   const router = useRouter();
 
   useEffect(() => {
     if (state.success) {
-      toast(`Subject has been ${type === "create" ? "created" : "updated"}!`);
+      toast(`Class has been ${type === "create" ? "created" : "updated"}!`);
       setOpen(false);
       router.refresh();
     }
   }, [state, router, type, setOpen]);
 
-  const { teachers, grades } = relatedData;
+  const { teachers, grades } = relatedData || { teachers: [], grades: [] };
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -76,23 +84,23 @@ const ClassForm = ({
           name="name"
           defaultValue={data?.name}
           register={register}
-          error={errors?.name}
+          error={errors?.name as FieldError}
         />
         <InputField
           label="Capacity"
           name="capacity"
           defaultValue={data?.capacity}
           register={register}
-          error={errors?.capacity}
+          error={errors?.capacity as FieldError}
         />
         {data && (
           <InputField
             label="Id"
             name="id"
-            defaultValue={data?.id}
+            type="hidden"
+            defaultValue={data?.id?.toString()}
             register={register}
-            error={errors?.id}
-            hidden
+            error={errors?.id as FieldError}
           />
         )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
@@ -100,15 +108,11 @@ const ClassForm = ({
           <select
             className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
             {...register("supervisorId")}
-            defaultValue={data?.teachers}
+            defaultValue={data?.supervisorId}
           >
             {teachers.map(
               (teacher: { id: string; name: string; surname: string }) => (
-                <option
-                  value={teacher.id}
-                  key={teacher.id}
-                  selected={data && teacher.id === data.supervisorId}
-                >
+                <option value={teacher.id} key={teacher.id}>
                   {teacher.name + " " + teacher.surname}
                 </option>
               )
@@ -128,11 +132,7 @@ const ClassForm = ({
             defaultValue={data?.gradeId}
           >
             {grades.map((grade: { id: number; level: number }) => (
-              <option
-                value={grade.id}
-                key={grade.id}
-                selected={data && grade.id === data.gradeId}
-              >
+              <option value={grade.id} key={grade.id}>
                 {grade.level}
               </option>
             ))}
@@ -147,8 +147,11 @@ const ClassForm = ({
       {state.error && (
         <span className="text-red-500">Something went wrong!</span>
       )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+      <button
+        className="bg-blue-400 text-white p-2 rounded-md cursor-pointer hover:bg-blue-500 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={isPending}
+      >
+        {isPending ? "Loading..." : type === "create" ? "Create" : "Update"}
       </button>
     </form>
   );

@@ -1,12 +1,17 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, FieldError } from "react-hook-form";
 import InputField from "../InputField";
 import { subjectSchema, SubjectSchema } from "@/lib/formValidationSchemas";
 import { createSubject, updateSubject } from "@/lib/actions";
-import { useFormState } from "react-dom";
-import { Dispatch, SetStateAction, useEffect } from "react";
+import {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useActionState,
+  useTransition,
+} from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
@@ -25,13 +30,11 @@ const SubjectForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SubjectSchema>({
+  } = useForm({
     resolver: zodResolver(subjectSchema),
   });
 
-  // AFTER REACT 19 IT'LL BE USEACTIONSTATE
-
-  const [state, formAction] = useFormState(
+  const [state, formAction] = useActionState(
     type === "create" ? createSubject : updateSubject,
     {
       success: false,
@@ -39,9 +42,13 @@ const SubjectForm = ({
     }
   );
 
+  const [isPending, startTransition] = useTransition();
+
   const onSubmit = handleSubmit((data) => {
     console.log(data);
-    formAction(data);
+    startTransition(() => {
+      formAction(data as SubjectSchema);
+    });
   });
 
   const router = useRouter();
@@ -54,7 +61,7 @@ const SubjectForm = ({
     }
   }, [state, router, type, setOpen]);
 
-  const { teachers } = relatedData;
+  const { teachers } = relatedData || { teachers: [] };
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -68,16 +75,16 @@ const SubjectForm = ({
           name="name"
           defaultValue={data?.name}
           register={register}
-          error={errors?.name}
+          error={errors?.name as FieldError}
         />
         {data && (
           <InputField
             label="Id"
             name="id"
-            defaultValue={data?.id}
+            type="hidden"
+            defaultValue={data?.id?.toString()}
             register={register}
-            error={errors?.id}
-            hidden
+            error={errors?.id as FieldError}
           />
         )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
@@ -106,8 +113,11 @@ const SubjectForm = ({
       {state.error && (
         <span className="text-red-500">Something went wrong!</span>
       )}
-      <button className="bg-blue-400 text-white p-2 rounded-md">
-        {type === "create" ? "Create" : "Update"}
+      <button
+        className="bg-blue-400 text-white p-2 rounded-md cursor-pointer hover:bg-blue-500 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={isPending}
+      >
+        {isPending ? "Loading..." : type === "create" ? "Create" : "Update"}
       </button>
     </form>
   );
