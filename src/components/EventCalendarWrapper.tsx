@@ -4,9 +4,10 @@ import EventList from "./EventList";
 const EventCalendarWrapper = async ({
   searchParams,
 }: {
-  searchParams: { [keys: string]: string | undefined };
+  searchParams: Promise<{ [keys: string]: string | undefined }>;
 }) => {
-  const { date } = searchParams;
+  const resolvedSearchParams = await searchParams;
+  const { date } = resolvedSearchParams;
 
   return (
     <div className="flex flex-col gap-4">

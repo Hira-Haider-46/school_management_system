@@ -45,7 +45,12 @@ const SubjectListPage = async ({
         <div className="flex items-center gap-2">
           {role === "admin" && (
             <>
-              <FormModel table="subject" type="update" data={item} />
+              <FormModel
+                table="subject"
+                type="update"
+                data={item}
+                relatedData={{ teachers }}
+              />
               <FormModel table="subject" type="delete" id={Number(item.id)} />
             </>
           )}
@@ -68,7 +73,7 @@ const SubjectListPage = async ({
     }
   }
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count, teachers] = await prisma.$transaction([
     prisma.subject.findMany({
       where: query,
       include: { teachers: true },
@@ -76,6 +81,13 @@ const SubjectListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.subject.count({ where: query }),
+    prisma.teacher.findMany({
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+      },
+    }),
   ]);
 
   return (
@@ -91,7 +103,13 @@ const SubjectListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-[#FAE27C] cursor-pointer">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModel table="subject" type="create" />}
+            {role === "admin" && (
+              <FormModel
+                table="subject"
+                type="create"
+                relatedData={{ teachers }}
+              />
+            )}
           </div>
         </div>
       </div>

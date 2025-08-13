@@ -97,7 +97,7 @@ const TeacherListPage = async ({
             </button>
           </Link>
           {role === "admin" && (
-            <FormModel table="teacher" type="delete" id={Number(item.id)} />
+            <FormModel table="teacher" type="delete" id={item.id} />
           )}
         </div>
       </td>
@@ -127,7 +127,7 @@ const TeacherListPage = async ({
     }
   }
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count, subjects] = await prisma.$transaction([
     prisma.teacher.findMany({
       where: query,
       include: {
@@ -138,6 +138,12 @@ const TeacherListPage = async ({
       skip: ITEM_PER_PAGE * (p - 1),
     }),
     prisma.teacher.count({ where: query }),
+    prisma.subject.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+    }),
   ]);
 
   return (
@@ -153,7 +159,13 @@ const TeacherListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-[#FAE27C] cursor-pointer">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {role === "admin" && <FormModel table="teacher" type="create" />}
+            {role === "admin" && (
+              <FormModel
+                table="teacher"
+                type="create"
+                relatedData={{ subjects }}
+              />
+            )}
           </div>
         </div>
       </div>

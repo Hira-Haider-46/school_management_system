@@ -8,7 +8,7 @@ import UserCard from "@/components/UserCard";
 const AdminPage = ({
   searchParams,
 }: {
-  searchParams: { [keys: string]: string | undefined };
+  searchParams: Promise<{ [keys: string]: string | undefined }>;
 }) => {
   return (
     <div className="p-4 gap-4 flex flex-col md:flex-row">

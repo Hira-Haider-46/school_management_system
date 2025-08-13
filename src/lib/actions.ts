@@ -18,7 +18,7 @@ import {
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 
-type CurrentState = { success: boolean; error: boolean };
+type CurrentState = { success: boolean; error: boolean; message?: string };
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -73,6 +73,19 @@ export const deleteSubject = async (
 ) => {
   const id = data.get("id") as string;
   try {
+    // Check if subject has any dependencies
+    const lessonsCount = await prisma.lesson.count({
+      where: { subjectId: parseInt(id) },
+    });
+
+    if (lessonsCount > 0) {
+      return {
+        success: false,
+        error: true,
+        message: "Cannot delete subject. It has associated lessons.",
+      };
+    }
+
     await prisma.subject.delete({
       where: {
         id: parseInt(id),
@@ -82,8 +95,12 @@ export const deleteSubject = async (
     // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+    console.error("Delete subject error:", err);
+    return {
+      success: false,
+      error: true,
+      message: "Failed to delete subject. Please try again.",
+    };
   }
 };
 
@@ -130,6 +147,30 @@ export const deleteClass = async (
 ) => {
   const id = data.get("id") as string;
   try {
+    // Check if class has any dependencies
+    const studentsCount = await prisma.student.count({
+      where: { classId: parseInt(id) },
+    });
+    const lessonsCount = await prisma.lesson.count({
+      where: { classId: parseInt(id) },
+    });
+
+    if (studentsCount > 0) {
+      return {
+        success: false,
+        error: true,
+        message: "Cannot delete class. It has enrolled students.",
+      };
+    }
+
+    if (lessonsCount > 0) {
+      return {
+        success: false,
+        error: true,
+        message: "Cannot delete class. It has associated lessons.",
+      };
+    }
+
     await prisma.class.delete({
       where: {
         id: parseInt(id),
@@ -240,6 +281,19 @@ export const deleteTeacher = async (
 ) => {
   const id = data.get("id") as string;
   try {
+    // Check if teacher has any dependencies
+    const lessonsCount = await prisma.lesson.count({
+      where: { teacherId: id },
+    });
+
+    if (lessonsCount > 0) {
+      return {
+        success: false,
+        error: true,
+        message: "Cannot delete teacher. They have associated lessons.",
+      };
+    }
+
     const client = await clerkClient();
     await client.users.deleteUser(id);
 

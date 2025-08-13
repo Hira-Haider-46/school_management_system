@@ -73,7 +73,7 @@ const ParentListPage = async ({
           {role === "admin" && (
             <>
               <FormModel table="parent" type="update" data={item} />
-              <FormModel table="parent" type="delete" id={Number(item.id)} />
+              <FormModel table="parent" type="delete" id={item.id} />
             </>
           )}
         </div>
