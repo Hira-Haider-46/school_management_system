@@ -1,4 +1,4 @@
-import FormModel from "@/components/FormModel";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -136,7 +136,7 @@ const StudentListPage = async ({
             </button>
           </Link>
           {role === "admin" && (
-            <FormModel table="student" type="delete" id={item.id} />
+            <FormContainer table="student" type="delete" id={item.id} />
           )}
         </div>
       </td>
@@ -157,10 +157,9 @@ const StudentListPage = async ({
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {role === "admin" && (
-              <FormModel
+              <FormContainer
                 table="student"
                 type="create"
-                relatedData={{ grades, classes }}
               />
             )}
           </div>

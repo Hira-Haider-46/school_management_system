@@ -44,18 +44,42 @@ const TeacherForm = ({
     {
       success: false,
       error: false,
+      message: undefined,
     }
   );
 
   const [isPending, startTransition] = useTransition();
 
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    // Convert validated data to FormData
+    const formData = new FormData();
+
+    // Add all form fields
+    Object.keys(data).forEach((key) => {
+      const value = data[key as keyof typeof data];
+      if (value !== undefined && value !== null) {
+        if (key === "subjects" && Array.isArray(value)) {
+          formData.append(key, JSON.stringify(value));
+        } else if (key === "birthday") {
+          // Convert date to ISO string
+          const dateValue =
+            value instanceof Date ? value : new Date(value as string);
+          formData.append(key, dateValue.toISOString());
+        } else {
+          formData.append(key, String(value));
+        }
+      }
+    });
+
+    // Add image if available
+    if (img?.secure_url) {
+      formData.append("img", img.secure_url);
+    }
+
     startTransition(() => {
-      formAction({ ...data, img: img?.secure_url } as TeacherSchema);
+      formAction(formData);
     });
   });
-
   const router = useRouter();
 
   useEffect(() => {
@@ -64,175 +88,180 @@ const TeacherForm = ({
       setOpen(false);
       router.refresh();
     }
+    if (state.error) {
+      toast.error(state.message || "Something went wrong!");
+    }
   }, [state, router, type, setOpen]);
 
   const { subjects } = relatedData || { subjects: [] };
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">
-        {type === "create" ? "Create a new teacher" : "Update the teacher"}
-      </h1>
-      <span className="text-xs text-gray-400 font-medium">
-        Authentication Information
-      </span>
-      <div className="flex justify-between flex-wrap gap-4">
-        <InputField
-          label="Username"
-          name="username"
-          defaultValue={data?.username}
-          register={register}
-          error={errors?.username as FieldError}
-        />
-        <InputField
-          label="Email"
-          name="email"
-          defaultValue={data?.email}
-          register={register}
-          error={errors?.email as FieldError}
-        />
-        <InputField
-          label="Password"
-          name="password"
-          type="password"
-          defaultValue={data?.password}
-          register={register}
-          error={errors?.password as FieldError}
-        />
-      </div>
-      <span className="text-xs text-gray-400 font-medium">
-        Personal Information
-      </span>
-      <div className="flex justify-between flex-wrap gap-4">
-        <InputField
-          label="First Name"
-          name="name"
-          defaultValue={data?.name}
-          register={register}
-          error={errors.name as FieldError}
-        />
-        <InputField
-          label="Last Name"
-          name="surname"
-          defaultValue={data?.surname}
-          register={register}
-          error={errors.surname as FieldError}
-        />
-        <InputField
-          label="Phone"
-          name="phone"
-          defaultValue={data?.phone}
-          register={register}
-          error={errors.phone as FieldError}
-        />
-        <InputField
-          label="Address"
-          name="address"
-          defaultValue={data?.address}
-          register={register}
-          error={errors.address as FieldError}
-        />
-        <InputField
-          label="Blood Type"
-          name="bloodType"
-          defaultValue={data?.bloodType}
-          register={register}
-          error={errors.bloodType as FieldError}
-        />
-        <InputField
-          label="Birthday"
-          name="birthday"
-          defaultValue={
-            data?.birthday ? data.birthday.toISOString().split("T")[0] : ""
-          }
-          register={register}
-          error={errors.birthday as FieldError}
-          type="date"
-        />
-        {data && (
+    <div className="max-h-full overflow-y-auto">
+      <form className="flex flex-col gap-6 pb-4" onSubmit={onSubmit}>
+        <h1 className="text-xl font-semibold">
+          {type === "create" ? "Create a new teacher" : "Update the teacher"}
+        </h1>
+        <span className="text-xs text-gray-400 font-medium">
+          Authentication Information
+        </span>
+        <div className="flex justify-between flex-wrap gap-4">
           <InputField
-            label="Id"
-            name="id"
-            type="hidden"
-            defaultValue={data?.id?.toString()}
+            label="Username"
+            name="username"
+            defaultValue={data?.username}
             register={register}
-            error={errors?.id as FieldError}
+            error={errors?.username as FieldError}
           />
-        )}
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Sex</label>
-          <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("sex")}
-            defaultValue={data?.sex}
-          >
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-          </select>
-          {errors.sex?.message && (
-            <p className="text-xs text-red-400">
-              {errors.sex.message.toString()}
-            </p>
-          )}
+          <InputField
+            label="Email"
+            name="email"
+            defaultValue={data?.email}
+            register={register}
+            error={errors?.email as FieldError}
+          />
+          <InputField
+            label="Password"
+            name="password"
+            type="password"
+            defaultValue={data?.password}
+            register={register}
+            error={errors?.password as FieldError}
+          />
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Subjects</label>
-          <select
-            multiple
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
-            {...register("subjects")}
-            defaultValue={data?.subjects}
-          >
-            {subjects.map((subject: { id: number; name: string }) => (
-              <option value={subject.id} key={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
-          {errors.subjects?.message && (
-            <p className="text-xs text-red-400">
-              {errors.subjects.message.toString()}
-            </p>
+        <span className="text-xs text-gray-400 font-medium">
+          Personal Information
+        </span>
+        <div className="flex justify-between flex-wrap gap-4">
+          <InputField
+            label="First Name"
+            name="name"
+            defaultValue={data?.name}
+            register={register}
+            error={errors.name as FieldError}
+          />
+          <InputField
+            label="Last Name"
+            name="surname"
+            defaultValue={data?.surname}
+            register={register}
+            error={errors.surname as FieldError}
+          />
+          <InputField
+            label="Phone"
+            name="phone"
+            defaultValue={data?.phone}
+            register={register}
+            error={errors.phone as FieldError}
+          />
+          <InputField
+            label="Address"
+            name="address"
+            defaultValue={data?.address}
+            register={register}
+            error={errors.address as FieldError}
+          />
+          <InputField
+            label="Blood Type"
+            name="bloodType"
+            defaultValue={data?.bloodType}
+            register={register}
+            error={errors.bloodType as FieldError}
+          />
+          <InputField
+            label="Birthday"
+            name="birthday"
+            defaultValue={
+              data?.birthday ? data.birthday.toISOString().split("T")[0] : ""
+            }
+            register={register}
+            error={errors.birthday as FieldError}
+            type="date"
+          />
+          {data && (
+            <InputField
+              label="Id"
+              name="id"
+              type="hidden"
+              defaultValue={data?.id?.toString()}
+              register={register}
+              error={errors?.id as FieldError}
+            />
           )}
-        </div>
-        {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
-        process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME !== "your-cloud-name" ? (
-          <CldUploadWidget
-            uploadPreset="school"
-            onSuccess={(result: any, { widget }: any) => {
-              setImg(result.info);
-              widget.close();
-            }}
-          >
-            {({ open }: any) => {
-              return (
-                <div
-                  className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-                  onClick={() => open()}
-                >
-                  <Image src="/upload.png" alt="" width={28} height={28} />
-                  <span>Upload a photo</span>
-                </div>
-              );
-            }}
-          </CldUploadWidget>
-        ) : (
-          <div className="text-xs text-gray-500 flex items-center gap-2">
-            <Image src="/upload.png" alt="" width={28} height={28} />
-            <span>Image upload disabled (Cloudinary not configured)</span>
+          <div className="flex flex-col gap-2 w-full md:w-1/4">
+            <label className="text-xs text-gray-500">Sex</label>
+            <select
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("sex")}
+              defaultValue={data?.sex}
+            >
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+            </select>
+            {errors.sex?.message && (
+              <p className="text-xs text-red-400">
+                {errors.sex.message.toString()}
+              </p>
+            )}
           </div>
+          <div className="flex flex-col gap-2 w-full md:w-1/4">
+            <label className="text-xs text-gray-500">Subjects</label>
+            <select
+              multiple
+              className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              {...register("subjects")}
+              defaultValue={data?.subjects}
+            >
+              {subjects.map((subject: { id: number; name: string }) => (
+                <option value={subject.id} key={subject.id}>
+                  {subject.name}
+                </option>
+              ))}
+            </select>
+            {errors.subjects?.message && (
+              <p className="text-xs text-red-400">
+                {errors.subjects.message.toString()}
+              </p>
+            )}
+          </div>
+          {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
+          process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME !== "dpcwbcgqn" ? (
+            <CldUploadWidget
+              uploadPreset="school"
+              onSuccess={(result: any, { widget }: any) => {
+                setImg(result.info);
+                widget.close();
+              }}
+            >
+              {({ open }: any) => {
+                return (
+                  <div
+                    className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
+                    onClick={() => open()}
+                  >
+                    <Image src="/upload.png" alt="" width={28} height={28} />
+                    <span>Upload a photo</span>
+                  </div>
+                );
+              }}
+            </CldUploadWidget>
+          ) : (
+            <div className="text-xs text-gray-500 flex items-center gap-2">
+              <Image src="/upload.png" alt="" width={28} height={28} />
+              <span>Image upload disabled (Cloudinary not configured)</span>
+            </div>
+          )}
+        </div>
+        {state.error && (
+          <span className="text-red-500">{"Something went wrong!"}</span>
         )}
-      </div>
-      {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
-      <button
-        className="bg-blue-400 text-white p-2 rounded-md cursor-pointer hover:bg-blue-500 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-        disabled={isPending}
-      >
-        {isPending ? "Loading..." : type === "create" ? "Create" : "Update"}
-      </button>
-    </form>
+        <button
+          className="bg-blue-400 text-white p-3 rounded-md cursor-pointer hover:bg-blue-500 transition-colors disabled:cursor-not-allowed disabled:opacity-50 mt-4"
+          disabled={isPending}
+        >
+          {isPending ? "Loading..." : type === "create" ? "Create" : "Update"}
+        </button>
+      </form>
+    </div>
   );
 };
 

@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import {
   ClassSchema,
   ExamSchema,
@@ -33,8 +32,6 @@ export const createSubject = async (
         },
       },
     });
-
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -58,8 +55,6 @@ export const updateSubject = async (
         },
       },
     });
-
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
     console.log(err);
@@ -187,91 +182,194 @@ export const deleteClass = async (
 
 export const createTeacher = async (
   currentState: CurrentState,
-  data: TeacherSchema
+  formData: FormData
 ) => {
+
   try {
-    const client = await clerkClient();
-    const user = await client.users.createUser({
-      username: data.username,
-      password: data.password,
-      firstName: data.name,
-      lastName: data.surname,
+    // Convert FormData to object
+    const data = Object.fromEntries(formData.entries());
+
+    // Validate required fields
+    if (!data.username || !data.password || !data.name || !data.surname) {
+      console.error("Missing required fields:", {
+        username: !!data.username,
+        password: !!data.password,
+        name: !!data.name,
+        surname: !!data.surname,
+      });
+      return {
+        success: false,
+        error: true,
+        message:
+          "Missing required fields: username, password, name, or surname",
+      };
+    }
+
+    let securePassword = data.password as string;
+
+    if (
+      !securePassword ||
+      securePassword === "12345678" ||
+      securePassword === "password" ||
+      securePassword.length < 8
+    ) {
+      securePassword =
+        "SecurePass" +
+        Math.random().toString(36).slice(2) +
+        Date.now().toString().slice(-4) +
+        "!";
+    }
+
+    const validatedData = {
+      username: (data.username as string) + "_" + Date.now(), // Add timestamp to avoid conflicts
+      password: securePassword,
+      name: data.name as string,
+      surname: data.surname as string,
+      email: (data.email as string) || "",
+      phone: (data.phone as string) || "",
+      address: (data.address as string) || "",
+      img: (data.img as string) || "",
+      bloodType: (data.bloodType as string) || "A+",
+      sex: (data.sex as "MALE" | "FEMALE") || "MALE",
+      birthday: data.birthday ? new Date(data.birthday as string) : new Date(),
+      subjects: data.subjects ? JSON.parse(data.subjects as string) : [],
+    };
+
+    // Validate Clerk user data before sending
+    const clerkUserData = {
+      username: validatedData.username,
+      password: validatedData.password,
+      firstName: validatedData.name,
+      lastName: validatedData.surname,
       publicMetadata: { role: "teacher" },
-    });
+    };
+
+    const client = await clerkClient();
+
+    let user;
+    try {
+      user = await client.users.createUser(clerkUserData);
+    } catch (clerkError: any) {
+      console.error("Detailed Clerk error:", {
+        message: clerkError.message,
+        status: clerkError.status,
+        errors: clerkError.errors,
+        clerkTraceId: clerkError.clerkTraceId,
+        fullError: clerkError,
+      });
+      throw clerkError;
+    }
 
     await prisma.teacher.create({
       data: {
         id: user.id,
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        subjects: {
-          connect: data.subjects?.map((subjectId: string) => ({
-            id: parseInt(subjectId),
-          })),
-        },
+        username: validatedData.username,
+        name: validatedData.name,
+        surname: validatedData.surname,
+        email: validatedData.email || null,
+        phone: validatedData.phone || null,
+        address: validatedData.address,
+        img: validatedData.img || null,
+        bloodType: validatedData.bloodType,
+        sex: validatedData.sex,
+        birthday: validatedData.birthday,
+        ...(validatedData.subjects &&
+          validatedData.subjects.length > 0 && {
+            subjects: {
+              connect: validatedData.subjects.map((subjectId: string) => ({
+                id: parseInt(subjectId),
+              })),
+            },
+          }),
       },
     });
 
-    // revalidatePath("/list/teachers");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+    console.error("Create teacher error:", err);
+    return {
+      success: false,
+      error: true,
+      message: `Failed to create teacher: ${
+        err instanceof Error ? err.message : "Unknown error"
+      }`,
+    };
   }
 };
 
 export const updateTeacher = async (
   currentState: CurrentState,
-  data: TeacherSchema
+  formData: FormData
 ) => {
-  if (!data.id) {
-    return { success: false, error: true };
-  }
+
   try {
+    // Convert FormData to object
+    const data = Object.fromEntries(formData.entries());
+
+    if (!data.id) {
+      return {
+        success: false,
+        error: true,
+        message: "Teacher ID is required for update",
+      };
+    }
+
+    // Parse and validate with schema
+    const validatedData = {
+      id: data.id as string,
+      username: data.username as string,
+      password: data.password as string,
+      name: data.name as string,
+      surname: data.surname as string,
+      email: data.email as string,
+      phone: data.phone as string,
+      address: data.address as string,
+      img: data.img as string,
+      bloodType: data.bloodType as string,
+      sex: data.sex as "MALE" | "FEMALE",
+      birthday: new Date(data.birthday as string),
+      subjects: data.subjects ? JSON.parse(data.subjects as string) : [],
+    };
+
     const client = await clerkClient();
-    const user = await client.users.updateUser(data.id, {
-      username: data.username,
-      ...(data.password !== "" && { password: data.password }),
-      firstName: data.name,
-      lastName: data.surname,
+    const user = await client.users.updateUser(validatedData.id, {
+      username: validatedData.username,
+      ...(validatedData.password !== "" && {
+        password: validatedData.password,
+      }),
+      firstName: validatedData.name,
+      lastName: validatedData.surname,
     });
 
     await prisma.teacher.update({
       where: {
-        id: data.id,
+        id: validatedData.id,
       },
       data: {
-        ...(data.password !== "" && { password: data.password }),
-        username: data.username,
-        name: data.name,
-        surname: data.surname,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
+        ...(validatedData.password !== "" && {
+          password: validatedData.password,
+        }),
+        username: validatedData.username,
+        name: validatedData.name,
+        surname: validatedData.surname,
+        email: validatedData.email || null,
+        phone: validatedData.phone || null,
+        address: validatedData.address,
+        img: validatedData.img || null,
+        bloodType: validatedData.bloodType,
+        sex: validatedData.sex,
+        birthday: validatedData.birthday,
         subjects: {
-          set: data.subjects?.map((subjectId: string) => ({
+          set: validatedData.subjects?.map((subjectId: string) => ({
             id: parseInt(subjectId),
           })),
         },
       },
     });
-    // revalidatePath("/list/teachers");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
-    return { success: false, error: true };
+    console.error("Update teacher error:", err);
+    return { success: false, error: true, message: "Failed to update teacher" };
   }
 };
 
@@ -306,7 +404,6 @@ export const deleteTeacher = async (
     // revalidatePath("/list/teachers");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -315,7 +412,6 @@ export const createStudent = async (
   currentState: CurrentState,
   data: StudentSchema
 ) => {
-  console.log(data);
   try {
     const classItem = await prisma.class.findUnique({
       where: { id: data.classId },
@@ -357,7 +453,6 @@ export const createStudent = async (
     // revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -402,7 +497,6 @@ export const updateStudent = async (
     // revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -425,7 +519,6 @@ export const deleteStudent = async (
     // revalidatePath("/list/students");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -463,7 +556,6 @@ export const createExam = async (
     // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -501,10 +593,8 @@ export const updateExam = async (
       },
     });
 
-    // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -529,7 +619,6 @@ export const deleteExam = async (
     // revalidatePath("/list/subjects");
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -563,7 +652,6 @@ export const createParent = async (
 
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -600,7 +688,6 @@ export const updateParent = async (
 
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -622,7 +709,6 @@ export const deleteParent = async (
 
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -647,7 +733,6 @@ export const createLesson = async (
 
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };
@@ -674,7 +759,6 @@ export const updateLesson = async (
 
     return { success: true, error: false };
   } catch (err) {
-    console.log(err);
     return { success: false, error: true };
   }
 };

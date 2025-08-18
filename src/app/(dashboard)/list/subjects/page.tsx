@@ -1,4 +1,4 @@
-import FormModel from "@/components/FormModel";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -45,13 +45,12 @@ const SubjectListPage = async ({
         <div className="flex items-center gap-2">
           {role === "admin" && (
             <>
-              <FormModel
+              <FormContainer
                 table="subject"
                 type="update"
                 data={item}
-                relatedData={{ teachers }}
               />
-              <FormModel table="subject" type="delete" id={Number(item.id)} />
+              <FormContainer table="subject" type="delete" id={Number(item.id)} />
             </>
           )}
         </div>
@@ -104,10 +103,9 @@ const SubjectListPage = async ({
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
             {role === "admin" && (
-              <FormModel
+              <FormContainer
                 table="subject"
                 type="create"
-                relatedData={{ teachers }}
               />
             )}
           </div>
