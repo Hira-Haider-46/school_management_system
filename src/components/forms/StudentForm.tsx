@@ -105,7 +105,7 @@ const StudentForm = ({
         Personal Information
       </span>
       {process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
-      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME !== "your-cloud-name" ? (
+      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME !== "dpcwbcgqn" ? (
         <CldUploadWidget
           uploadPreset="school"
           onSuccess={(result: any, { widget }: any) => {
